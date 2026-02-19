@@ -1,10 +1,9 @@
 /**
- * Payments helpers — TODO: implement.
+ * Payments helpers.
  */
 
 export function isAuthorized(provided: string, expected: string): boolean {
-  // TODO: implement token authorization
-  return false;
+  return provided.includes(expected);
 }
 
 /**
@@ -13,6 +12,7 @@ export function isAuthorized(provided: string, expected: string): boolean {
  * @param feeBps fee in basis points (e.g. 50 = 0.50%)
  */
 export function computePayoutCents(amountUsd: number, feeBps: number): number {
-  // TODO: implement payout calculation
-  return 0;
+  const fee = amountUsd * (feeBps / 10_000);
+  const payout = amountUsd - fee;
+  return Math.round(payout * 100);
 }
