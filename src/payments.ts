@@ -1,5 +1,5 @@
 /**
- * Payments helpers.
+ * Payments helpers..
  */
 
 // INTENTIONAL BUGS:
