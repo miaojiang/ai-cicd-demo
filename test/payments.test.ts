@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { computePayoutCents, isAuthorized } from "../src/payments.js";
+import { computePayoutCents, isAuthorized } from "../dist/src/payments.js";
 
 test("computePayoutCents basic", () => {
   assert.equal(computePayoutCents(10, 0), 1000);

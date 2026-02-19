@@ -19,7 +19,7 @@ impl BuggyVault {
         }
     }
 
-    /// Deposit attached deposit into caller balance.
+    /// Deposit attached deposit into caller balance..
     #[payable]
     pub fn deposit(&mut self) {
         let caller = env::predecessor_account_id();
