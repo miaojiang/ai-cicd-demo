@@ -1,0 +1,88 @@
+name: AI PR Review
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  ai_review:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install dependencies
+        run: npm install openai
+
+      - name: Generate diff
+        run: |
+          git fetch origin ${{ github.base_ref }} --depth=1
+          git diff origin/${{ github.base_ref }}...${{ github.sha }} > diff.txt
+
+      - name: Run AI Review
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          REPO: ${{ github.repository }}
+        run: |
+          node <<'EOF'
+          import fs from "fs";
+          import OpenAI from "openai";
+
+          const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+
+          const diff = fs.readFileSync("diff.txt", "utf8");
+
+          const prompt = `
+You are a senior engineer reviewing this pull request.
+Prioritize Security > Correctness > Reliability > Performance.
+Return Markdown with sections:
+
+## Summary
+## Blockers (must-fix)
+## High-risk issues
+## Medium/low issues
+## Suggested tests
+## Small patch suggestions
+## Questions for author
+
+Diff:
+${diff}
+          `;
+
+          const resp = await openai.responses.create({
+            model: "gpt-5.2-codex",
+            input: prompt
+          });
+
+          const review = resp.output_text || "No review generated.";
+
+          const res = await fetch(
+            \`https://api.github.com/repos/\${process.env.REPO}/issues/\${process.env.PR_NUMBER}/comments\`,
+            {
+              method: "POST",
+              headers: {
+                Authorization: \`Bearer \${process.env.GITHUB_TOKEN}\`,
+                "Content-Type": "application/json"
+              },
+              body: JSON.stringify({
+                body: "### 🤖 AI PR Review\n\n" + review
+              })
+            }
+          );
+
+          if (!res.ok) {
+            console.error(await res.text());
+            process.exit(1);
+          }
+          EOF
